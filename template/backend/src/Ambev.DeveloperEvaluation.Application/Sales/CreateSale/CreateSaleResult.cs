@@ -1,4 +1,4 @@
-﻿namespace Ambev.DeveloperEvaluation.Application.CreateSale;
+﻿namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
 
 public class CreateSaleResult
 {

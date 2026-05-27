@@ -1,10 +1,9 @@
-﻿using Ambev.DeveloperEvaluation.Application.Sales.GetSale;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
+﻿using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
 using FluentValidation;
 using MediatR;
 
-namespace Ambev.DeveloperEvaluation.Application.GetSale;
+namespace Ambev.DeveloperEvaluation.Application.Sales.GetSale;
 
 public class GetSaleHandler : IRequestHandler<GetSaleQuery, GetSaleResult>
 {
