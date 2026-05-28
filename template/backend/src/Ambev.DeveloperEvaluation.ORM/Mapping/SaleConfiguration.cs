@@ -34,12 +34,15 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
         builder.Ignore(s => s.TotalAmount);
         builder.Ignore(s => s.DomainEvents);
 
-        builder.HasMany<SaleItem>("_items")
+        // Usa a propriedade pública Items (não o field "_items")
+        builder.HasMany(s => s.Items)
             .WithOne()
             .HasForeignKey(i => i.SaleId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        var itemsNav = builder.Metadata.FindNavigation(nameof(Sale.Items));
-        itemsNav!.SetPropertyAccessMode(PropertyAccessMode.Field);
+        // Como Items é IReadOnlyCollection (sem setter), o EF precisa popular
+        builder.Metadata
+            .FindNavigation(nameof(Sale.Items))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
     }
 }
