@@ -53,6 +53,9 @@ public class Program
             builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
             var app = builder.Build();
+
+            ApplyMigrations(app.Services);
+
             app.UseMiddleware<ValidationExceptionMiddleware>();
 
             if (app.Environment.IsDevelopment())
@@ -60,8 +63,10 @@ public class Program
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-
-            app.UseHttpsRedirection();
+            else
+            {
+                app.UseHttpsRedirection();
+            }
 
             app.UseAuthentication();
             app.UseAuthorization();
@@ -79,6 +84,28 @@ public class Program
         finally
         {
             Log.CloseAndFlush();
+        }
+    }
+
+    private static void ApplyMigrations(IServiceProvider services)
+    {
+        const int maxAttempts = 10;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                using var scope = services.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<DefaultContext>();
+                db.Database.Migrate();
+                Log.Information("Database migrations applied successfully");
+                return;
+            }
+            catch (Exception ex) when (attempt < maxAttempts)
+            {
+                Log.Warning(ex, "Migration attempt {Attempt}/{Max} failed. Retrying in 3s...",
+                    attempt, maxAttempts);
+                Thread.Sleep(3000);
+            }
         }
     }
 }

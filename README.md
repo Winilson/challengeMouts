@@ -1,77 +1,78 @@
-# Developer Evaluation Project
+# Ambev Developer Evaluation — Sales API
 
-`READ CAREFULLY`
+API REST para gestão de vendas (DeveloperStore), implementando CRUD completo com regras de desconto progressivo, padrão DDD + CQRS, arquitetura hexagonal e eventos de domínio.
 
-## Use Case
-**You are a developer on the DeveloperStore team. Now we need to implement the API prototypes.**
+## Stack
 
-As we work with `DDD`, to reference entities from other domains, we use the `External Identities` pattern with denormalization of entity descriptions.
+- .NET 8 / ASP.NET Core
+- PostgreSQL 13 (via Docker)
+- Entity Framework Core 8
+- MediatR (CQRS), AutoMapper, FluentValidation, Serilog
+- xUnit / FluentAssertions / NSubstitute / Testcontainers
 
-Therefore, you will write an API (complete CRUD) that handles sales records. The API needs to be able to inform:
+## Como rodar
 
-* Sale number
-* Date when the sale was made
-* Customer
-* Total sale amount
-* Branch where the sale was made
-* Products
-* Quantities
-* Unit prices
-* Discounts
-* Total amount for each item
-* Cancelled/Not Cancelled
+```bash
+git clone https://github.com/Winilson/challengeMouts.git
+cd challengeMouts/template/backend
+docker-compose up --build
+```
 
-It's not mandatory, but it would be a differential to build code for publishing events of:
-* SaleCreated
-* SaleModified
-* SaleCancelled
-* ItemCancelled
+Aguarde 1-2 minutos. Quando aparecer `Now listening on: http://[::]:8080`, abra:
 
-If you write the code, **it's not required** to actually publish to any Message Broker. You can log a message in the application log or however you find most convenient.
+**http://localhost:8080/swagger**
 
-### Business Rules
+As migrations são aplicadas automaticamente no startup; a extensão `pgcrypto` é criada pelo `init.sql` na primeira inicialização do banco.
 
-* Purchases above 4 identical items have a 10% discount
-* Purchases between 10 and 20 identical items have a 20% discount
-* It's not possible to sell above 20 identical items
-* Purchases below 4 items cannot have a discount
+### Plano B (se Docker bloqueado no MCR)
 
-These business rules define quantity-based discounting tiers and limitations:
+```bash
+docker-compose up -d ambev.developerevaluation.database
+dotnet run --project src/Ambev.DeveloperEvaluation.WebApi
+```
 
-1. Discount Tiers:
-   - 4+ items: 10% discount
-   - 10-20 items: 20% discount
+Acesse **http://localhost:5119/swagger**
 
-2. Restrictions:
-   - Maximum limit: 20 items per product
-   - No discounts allowed for quantities below 4 items
+## Regras de negócio (descontos)
 
-## Overview
-This section provides a high-level overview of the project and the various skills and competencies it aims to assess for developer candidates. 
+| Quantidade | Desconto |
+|---|---|
+| 1 a 3 | 0% |
+| 4 a 9 | 10% |
+| 10 a 20 | 20% |
+| acima de 20 | proibido (HTTP 400) |
 
-See [Overview](/.doc/overview.md)
+## Endpoints
 
-## Tech Stack
-This section lists the key technologies used in the project, including the backend, testing, frontend, and database components. 
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/api/Sales` | Cria venda |
+| GET | `/api/Sales/{id}` | Busca por id |
+| GET | `/api/Sales` | Lista paginada com filtros |
+| PUT | `/api/Sales/{id}` | Atualiza cliente/filial |
+| DELETE | `/api/Sales/{id}` | Cancela venda (cascade) |
+| DELETE | `/api/Sales/{saleId}/items/{itemId}` | Cancela item específico |
 
-See [Tech Stack](/.doc/tech-stack.md)
+### Filtros disponíveis na listagem
+- `_page`, `_size`, `_order`
+- `saleNumber`, `customerName`, `branchName` (com wildcards `*`)
+- `customerId`, `branchId`, `isCancelled`
+- `_minDate`, `_maxDate`
 
-## Frameworks
-This section outlines the frameworks and libraries that are leveraged in the project to enhance development productivity and maintainability. 
+## Testes
 
-See [Frameworks](/.doc/frameworks.md)
+```bash
+# Unitários (136 testes)
+dotnet test tests/Ambev.DeveloperEvaluation.Unit
 
-<!-- 
-## API Structure
-This section includes links to the detailed documentation for the different API resources:
-- [API General](./docs/general-api.md)
-- [Products API](/.doc/products-api.md)
-- [Carts API](/.doc/carts-api.md)
-- [Users API](/.doc/users-api.md)
-- [Auth API](/.doc/auth-api.md)
--->
+# Funcionais com Postgres real (7 testes via Testcontainers)
+dotnet test tests/Ambev.DeveloperEvaluation.Functional
+```
 
-## Project Structure
-This section describes the overall structure and organization of the project files and directories. 
+## Cobertura
 
-See [Project Structure](/.doc/project-structure.md)
+```bash
+dotnet test tests/Ambev.DeveloperEvaluation.Unit /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+```
+
+## Arquitetura
