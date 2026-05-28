@@ -12,7 +12,14 @@ public class InfrastructureModuleInitializer : IModuleInitializer
 {
     public void Initialize(WebApplicationBuilder builder)
     {
-        builder.Services.AddScoped<DbContext>(provider => provider.GetRequiredService<DefaultContext>());
+        builder.Services.AddDbContext<DbContext, DefaultContext>(options =>
+            options.UseNpgsql(
+                builder.Configuration.GetConnectionString("DefaultConnection"),
+                b => b.MigrationsAssembly("Ambev.DeveloperEvaluation.ORM")
+            )
+        );
+
         builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<ISaleRepository, SaleRepository>();
     }
 }
